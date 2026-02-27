@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="MKP Coconut Shop - Fresh Coconuts, Water, Dry Coconut, and Coir. Premium Quality.">
+    <title>MKP Coconut Shop | Fresh & Premium</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for Premium Look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <script>
+        // Auth Check
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.role !== 'user') {
+            window.location.href = 'index.html';
+        }
+    </script>
+
+
+    <nav class="navbar">
+        <div class="logo">MKP Coconut Shop</div>
+        <div class="nav-links">
+            <span id="welcome-msg" class="welcome-msg"></span>
+            <button onclick="scrollToSection('home')">Home</button>
+            <button onclick="scrollToSection('products')">Products</button>
+            <button onclick="toggleCart()" class="cart-btn">
+                Cart <span id="cart-count">0</span>
+            </button>
+            <button onclick="logout()" class="logout-link">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Nature's Purest Gift</h1>
+            <p>Welcome to MKP Coconut Shop. Experience the freshness of premium quality coconuts.</p>
+            <button class="cta-button" onclick="scrollToSection('products')">Start Shopping</button>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section id="products" class="products-section">
+        <h2 class="section-title">Our Premium Selection</h2>
+        <div class="product-grid" id="product-list">
+            <!-- Products injected by JS -->
+        </div>
+    </section>
+
+    <!-- Advantages Section -->
+    <section id="advantages" class="advantages-section">
+        <h2 class="section-title">Why Choose Us?</h2>
+        <div class="advantages-grid">
+            <div class="advantage-card">
+                <h3>100% Organic</h3>
+                <p>Grown naturally without harmful chemicals.</p>
+            </div>
+            <div class="advantage-card">
+                <h3>Farm Fresh</h3>
+                <p>Direct from the farm to your doorstep.</p>
+            </div>
+            <div class="advantage-card">
+                <h3>High Quality</h3>
+                <p>Hand-picked for the best quality and taste.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Checkout Modal / Section -->
+    <div id="checkout-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeCheckout()">&times;</span>
+            <h2>Checkout</h2>
+            <div id="order-summary">
+                <!-- Order items go here -->
+            </div>
+            <div class="total-price">Total: ₹<span id="checkout-total">0</span></div>
+
+            <form id="checkout-form" onsubmit="processOrder(event)">
+                <h3>Shipping Details</h3>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="name" required placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="phone" required placeholder="Enter 10-digit number" maxlength="10"
+                        minlength="10" pattern="\d{10}"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);">
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <textarea id="address" required placeholder="Street, City, Zip Code"></textarea>
+                </div>
+
+                <h3>Payment Method</h3>
+                <div class="payment-options">
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="gpay" onchange="togglePaymentQR()" required>
+                        <span>GPay</span>
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="phonepe" onchange="togglePaymentQR()">
+                        <span>PhonePe</span>
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="cash" onchange="togglePaymentQR()">
+                        <span>Cash on Delivery</span>
+                    </label>
+                </div>
+
+                <div id="qr-code-section" class="hidden" style="text-align: center; margin-bottom: 1.5rem;">
+                    <p style="margin-bottom: 0.5rem; color: var(--primary-dark); font-weight: 600;">Scan to Pay</p>
+                    <p style="font-size: 1.2rem; font-weight: 700; color: #132A13; margin-bottom: 0.5rem;">Amount:
+                        ₹<span id="qr-amount">0</span></p>
+                    <p id="qr-timer-container" style="color: #d32f2f; font-weight: bold; margin-bottom: 0.5rem;">
+                        Payment window expires in: <span id="qr-timer">30</span>s
+                    </p>
+
+                    <a id="upi-link" href="#">
+                        <img id="payment-qr" src="images/qrcode.jpg" alt="Payment QR Code"
+                            style="width: 200px; border-radius: 10px; border: 2px solid #eee;">
+                    </a>
+
+                    <div style="margin-top: 1rem;">
+                        <a id="upi-btn" href="#" class="checkout-btn"
+                            style="display: inline-block; text-decoration: none; background: #132A13; padding: 0.8rem 1.5rem; width: auto;">Pay
+                            with UPI App</a>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="button" class="cancel-btn" onclick="cancelOrder()">Cancel Order</button>
+                    <button type="submit" class="checkout-btn">Confirm Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Message Overlay -->
+    <div id="success-overlay" class="overlay hidden">
+        <div class="overlay-content">
+            <h2>Order Placed Successfully!</h2>
+            <p>Thank you for shopping with MKP Coconut Shop.</p>
+            <button onclick="closeSuccess()">Continue Shopping</button>
+        </div>
+    </div>
+
+    <!-- Cancelled Message Overlay -->
+    <div id="cancelled-overlay" class="overlay hidden" style="background: rgba(153, 27, 27, 0.95);">
+        <div class="overlay-content">
+            <h2 style="color: white;">Order Cancelled</h2>
+            <p id="cancelled-msg" style="color: white;">Your checkout has been cancelled.</p>
+            <button onclick="closeCancelled()" style="color: #991b1b;">Back to Shop</button>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar/Modal -->
+    <div id="cart-sidebar" class="sidebar hidden">
+        <div class="sidebar-header">
+            <h3>Your Cart</h3>
+            <button onclick="toggleCart()">&times;</button>
+        </div>
+        <div id="cart-items" class="cart-items">
+            <!-- Cart items -->
+        </div>
+        <div class="cart-footer">
+            <div class="total">Total: ₹<span id="cart-total">0</span></div>
+            <button onclick="openCheckout()" class="checkout-btn">Proceed to Buy</button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2026 MKP Coconut Shop.</p>
+    </footer>
+
+    <!-- Admin panel section removed as it's now a separate page -->
+
+    <script src="script.js"></script>
+</body>
+
+</html>

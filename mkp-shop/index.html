@@ -1,0 +1,227 @@
+git init<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | MKP Coconut Shop</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .login-container h1 {
+            font-family: 'Playfair Display', serif;
+            color: #2D4739;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+
+        .login-container p {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: #f1f5f9;
+            padding: 0.5rem;
+            border-radius: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #4F772D;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            text-align: left;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #444;
+        }
+
+        .form-group input {
+            padding: 0.8rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4F772D;
+        }
+
+        .login-btn {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            background: #4F772D;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 15px -3px rgba(79, 119, 45, 0.3);
+        }
+
+        .login-btn:hover {
+            background: #3a5a22;
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error-msg {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <h1>MKP Shop</h1>
+        <p>Your portal to premium coconuts</p>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('user')">User Login</button>
+            <button class="tab-btn" onclick="switchTab('admin')">Admin Login</button>
+        </div>
+
+        <form id="user-login-form" class="login-form">
+            <div class="form-group">
+                <label for="user-name">Username (Name)</label>
+                <input type="text" id="user-name" placeholder="Enter your name" required>
+            </div>
+            <div class="form-group">
+                <label for="user-pass">Phone Number (Password)</label>
+                <input type="password" id="user-pass" placeholder="Enter 10-digit phone number" required maxlength="10"
+                    minlength="10" pattern="\d{10}"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);">
+            </div>
+            <button type="submit" class="login-btn">Login as User</button>
+            <div id="user-error" class="error-msg"></div>
+        </form>
+
+        <form id="admin-login-form" class="login-form hidden">
+            <div class="form-group">
+                <label for="admin-name">Admin Name</label>
+                <input type="text" id="admin-name" placeholder="Enter admin name" required>
+            </div>
+            <div class="form-group">
+                <label for="admin-pass">Admin Password</label>
+                <input type="password" id="admin-pass" placeholder="Enter admin password" required>
+            </div>
+            <button type="submit" class="login-btn" style="background: #132A13;">Login as Admin</button>
+            <div id="admin-error" class="error-msg"></div>
+        </form>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            const userForm = document.getElementById('user-login-form');
+            const adminForm = document.getElementById('admin-login-form');
+            const tabs = document.querySelectorAll('.tab-btn');
+
+            if (tab === 'user') {
+                userForm.classList.remove('hidden');
+                adminForm.classList.add('hidden');
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+            } else {
+                userForm.classList.add('hidden');
+                adminForm.classList.remove('hidden');
+                tabs[0].classList.remove('active');
+                tabs[1].classList.add('active');
+            }
+        }
+
+        document.getElementById('user-login-form').onsubmit = function (e) {
+            e.preventDefault();
+            const name = document.getElementById('user-name').value;
+            const pass = document.getElementById('user-pass').value;
+
+            if (name && pass) {
+                localStorage.setItem('currentUser', JSON.stringify({ name, pass, role: 'user' }));
+                window.location.href = 'home.html';
+            } else {
+                document.getElementById('user-error').innerText = "Please enter both fields.";
+            }
+        };
+
+        document.getElementById('admin-login-form').onsubmit = function (e) {
+            e.preventDefault();
+            const name = document.getElementById('admin-name').value;
+            const pass = document.getElementById('admin-pass').value;
+
+            // Credentials: name=23bit66, password=12122023
+            if (name === '23bit66' && pass === '12122023') {
+                localStorage.setItem('currentUser', JSON.stringify({ name, role: 'admin' }));
+                window.location.href = 'admin.html';
+            } else {
+                document.getElementById('admin-error').innerText = "Invalid Admin Credentials";
+            }
+        };
+    </script>
+</body>
+
+</html>
