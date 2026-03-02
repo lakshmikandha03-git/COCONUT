@@ -32,6 +32,7 @@
             <span id="welcome-msg" class="welcome-msg"></span>
             <button onclick="scrollToSection('home')">Home</button>
             <button onclick="scrollToSection('products')">Products</button>
+            <button onclick="viewMyOrders()">My Orders</button>
             <button onclick="toggleCart()" class="cart-btn">
                 Cart <span id="cart-count">0</span>
             </button>
@@ -131,10 +132,14 @@
                             style="width: 200px; border-radius: 10px; border: 2px solid #eee;">
                     </a>
 
-                    <div style="margin-top: 1rem;">
+                    <div
+                        style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: center;">
                         <a id="upi-btn" href="#" class="checkout-btn"
-                            style="display: inline-block; text-decoration: none; background: #132A13; padding: 0.8rem 1.5rem; width: auto;">Pay
+                            style="display: inline-block; text-decoration: none; background: #132A13; padding: 0.8rem 1.5rem; width: 100%; max-width: 250px;">Pay
                             with UPI App</a>
+                        <button type="button" onclick="goBackToPayment()"
+                            style="background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; font-size: 0.9rem;">Back
+                            to Payment Methods</button>
                     </div>
                 </div>
 
@@ -151,7 +156,12 @@
         <div class="overlay-content">
             <h2>Order Placed Successfully!</h2>
             <p>Thank you for shopping with MKP Coconut Shop.</p>
-            <button onclick="closeSuccess()">Continue Shopping</button>
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <button onclick="closeSuccess()" style="margin-top: 0; padding: 1rem 2rem;">Continue Shopping</button>
+                <button onclick="viewMyOrders(); closeSuccess();"
+                    style="margin-top: 0; padding: 1rem 2rem; background: #132A13; color: white;">View My
+                    Orders</button>
+            </div>
         </div>
     </div>
 
@@ -176,6 +186,20 @@
         <div class="cart-footer">
             <div class="total">Total: ₹<span id="cart-total">0</span></div>
             <button onclick="openCheckout()" class="checkout-btn">Proceed to Buy</button>
+        </div>
+    </div>
+
+    <!-- Orders Modal -->
+    <div id="orders-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-modal" onclick="closeOrders()">&times;</span>
+            <h2 style="margin-bottom: 1.5rem; color: var(--primary-dark);">Your Order History</h2>
+            <div id="orders-list">
+                <!-- Orders injected by JS -->
+            </div>
+            <div id="no-orders" class="hidden" style="text-align: center; padding: 2rem; color: #666;">
+                <p>You haven't placed any orders yet.</p>
+            </div>
         </div>
     </div>
 

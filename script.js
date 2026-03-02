@@ -220,8 +220,8 @@ function openCheckout() {
     if (qrAmount) qrAmount.innerText = total;
 
     // Update UPI Links
-    const upiId = "lakshmikandha03-1@okhdfcbank";
-    const upiName = "Lakshmi Kandhan";
+    const upiId = "kesavaharimari1004-3@okhdfcbank";
+    const upiName = "Kesava Hari Mari";
     const upiUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${total}&cu=INR`;
 
     const upiLink = document.getElementById('upi-link');
@@ -272,12 +272,23 @@ function cancelOrder() {
 }
 
 function processOrder(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
 
     const name = document.getElementById('name').value;
     const phone = document.getElementById('phone').value;
     const address = document.getElementById('address').value;
-    const payment = document.querySelector('input[name="payment"]:checked').value;
+
+    const paymentRadio = document.querySelector('input[name="payment"]:checked');
+    if (!paymentRadio) {
+        alert("Please select a payment method");
+        return;
+    }
+    const payment = paymentRadio.value;
+
+    if (!name || !phone || !address) {
+        alert("Please fill in all shipping details");
+        return;
+    }
 
     const order = {
         id: Date.now(),
@@ -323,11 +334,45 @@ function startQRTimer() {
     stopQRTimer(); // Clear any existing timer
     let timeLeft = 30;
     const timerDisplay = document.getElementById('qr-timer');
+    const timerContainer = document.getElementById('qr-timer-container');
+
     if (timerDisplay) timerDisplay.innerText = timeLeft;
+    if (timerContainer) {
+        timerContainer.style.color = "#d32f2f";
+        timerContainer.innerHTML = `Payment window expires in: <span id="qr-timer">${timeLeft}</span>s`;
+    }
+
+    // Simulated Payment Detection (for demo purposes)
+    // After 8 seconds of showing QR, it will "detect" the payment
+    setTimeout(() => {
+        const checked = document.querySelector('input[name="payment"]:checked');
+        if (checked && (checked.value === 'gpay' || checked.value === 'phonepe')) {
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const address = document.getElementById('address').value;
+
+            // Only auto-submit if form is mostly filled, otherwise wait for user
+            if (name && phone && address) {
+                if (timerContainer) {
+                    timerContainer.style.color = "#4F772D";
+                    timerContainer.innerHTML = "<strong>✓ Payment Received! Processing your order...</strong>";
+                }
+
+                // Final 2 second delay to show the "Success" message before closing
+                setTimeout(() => {
+                    const qrSection = document.getElementById('qr-code-section');
+                    if (!qrSection.classList.contains('hidden')) {
+                        processOrder();
+                    }
+                }, 2000);
+            }
+        }
+    }, 8000);
 
     qrTimerInterval = setInterval(() => {
         timeLeft--;
-        if (timerDisplay) timerDisplay.innerText = timeLeft;
+        const timerEl = document.getElementById('qr-timer');
+        if (timerEl) timerEl.innerText = timeLeft;
 
         if (timeLeft <= 0) {
             stopQRTimer();
@@ -370,4 +415,61 @@ function closeCancelled() {
 function logout() {
     localStorage.removeItem('currentUser');
     window.location.href = 'index.html';
+}
+
+function viewMyOrders() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (!user) return;
+
+    const modal = document.getElementById('orders-modal');
+    const list = document.getElementById('orders-list');
+    const noOrders = document.getElementById('no-orders');
+
+    if (modal) modal.classList.remove('hidden');
+
+    const allSales = JSON.parse(localStorage.getItem('mkp_sales') || '[]');
+    // Filter sales to show only this user's orders (by name or phone match)
+    const mySales = allSales.filter(s => s.phone === user.pass || s.name === user.name);
+
+    if (mySales.length === 0) {
+        if (noOrders) noOrders.classList.remove('hidden');
+        if (list) list.innerHTML = '';
+        return;
+    }
+
+    if (noOrders) noOrders.classList.add('hidden');
+    if (list) {
+        list.innerHTML = mySales.map(order => `
+            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; border-left: 5px solid #4F772D;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="font-weight: 700; color: #1e293b;">Order #${order.id.toString().slice(-6)}</span>
+                    <span style="font-size: 0.85rem; color: #64748b;">${order.date}</span>
+                </div>
+                <div style="margin-bottom: 0.5rem; font-size: 0.95rem;">
+                    <strong>Items:</strong> ${order.items.join(', ')}
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: #4F772D;">Total: ₹${order.total}</span>
+                    <span style="font-size: 0.8rem; background: #dcfce7; color: #166534; padding: 0.2rem 0.6rem; border-radius: 50px; font-weight: 600;">
+                        ${order.payment === 'cash' ? 'COD' : 'PAID'}
+                    </span>
+                </div>
+            </div>
+        `).reverse().join('');
+    }
+}
+
+function closeOrders() {
+    const modal = document.getElementById('orders-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function goBackToPayment() {
+    const qrSection = document.getElementById('qr-code-section');
+    if (qrSection) qrSection.classList.add('hidden');
+    stopQRTimer();
+
+    // Uncheck the payment radio buttons to force a new selection
+    const paymentRadios = document.querySelectorAll('input[name="payment"]');
+    paymentRadios.forEach(radio => radio.checked = false);
 }
