@@ -394,14 +394,34 @@
             }
         }
 
+        // Load just the registered user count for the stat card
+        async function loadUserCount() {
+            if (!window.firebaseDB || !window.firebaseDB.fetchAllUsers) {
+                document.getElementById('stat-users').innerText = '—';
+                return;
+            }
+            try {
+                const result = await window.firebaseDB.fetchAllUsers();
+                if (result.success) {
+                    document.getElementById('stat-users').innerText = result.users.length;
+                } else {
+                    document.getElementById('stat-users').innerText = '0';
+                }
+            } catch (err) {
+                console.error('Error loading user count:', err);
+                document.getElementById('stat-users').innerText = '0';
+            }
+        }
+
         // Wait for Firebase to load, then fetch data
         function initDashboard() {
-            // Try loading immediately
             loadSales();
+            loadUserCount();
 
-            // Also retry after a short delay for Firebase module to load
+            // Retry after a short delay in case Firebase SDK is still loading
             setTimeout(() => {
                 loadSales();
+                loadUserCount();
             }, 1500);
         }
 

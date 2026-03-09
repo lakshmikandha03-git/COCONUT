@@ -332,7 +332,7 @@ function togglePaymentQR() {
 
 function startQRTimer() {
     stopQRTimer(); // Clear any existing timer
-    let timeLeft = 30;
+    let timeLeft = 20;
     const timerDisplay = document.getElementById('qr-timer');
     const timerContainer = document.getElementById('qr-timer-container');
 
@@ -342,8 +342,8 @@ function startQRTimer() {
         timerContainer.innerHTML = `Payment window expires in: <span id="qr-timer">${timeLeft}</span>s`;
     }
 
-    // Simulated Payment Detection (for demo purposes)
-    // After 8 seconds of showing QR, it will "detect" the payment
+    // Simulated Payment Detection
+    // After 10 seconds of showing QR, it will "detect" the payment
     setTimeout(() => {
         const checked = document.querySelector('input[name="payment"]:checked');
         if (checked && (checked.value === 'gpay' || checked.value === 'phonepe')) {
@@ -351,23 +351,40 @@ function startQRTimer() {
             const phone = document.getElementById('phone').value;
             const address = document.getElementById('address').value;
 
-            // Only auto-submit if form is mostly filled, otherwise wait for user
+            // Only auto-submit if form is filled
             if (name && phone && address) {
+                // Stop the countdown timer
+                stopQRTimer();
+
                 if (timerContainer) {
-                    timerContainer.style.color = "#4F772D";
-                    timerContainer.innerHTML = "<strong>✓ Payment Received! Processing your order...</strong>";
+                    timerContainer.style.color = "#166534";
+                    timerContainer.innerHTML = `
+                        <div style="background: #dcfce7; padding: 1rem; border-radius: 10px; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: 0.3rem;">✅</div>
+                            <strong style="font-size: 1.1rem;">Payment Successful!</strong>
+                            <p style="font-size: 0.85rem; color: #166534; margin-top: 0.3rem;">Processing your order...</p>
+                        </div>`;
                 }
 
-                // Final 2 second delay to show the "Success" message before closing
+                // Hide QR code image
+                const qrImg = document.getElementById('payment-qr');
+                if (qrImg) qrImg.style.display = 'none';
+                const upiBtn = document.getElementById('upi-btn');
+                if (upiBtn) upiBtn.style.display = 'none';
+
+                // Process order after 2 seconds
                 setTimeout(() => {
                     const qrSection = document.getElementById('qr-code-section');
                     if (!qrSection.classList.contains('hidden')) {
+                        // Restore QR elements for future use
+                        if (qrImg) qrImg.style.display = '';
+                        if (upiBtn) upiBtn.style.display = '';
                         processOrder();
                     }
                 }, 2000);
             }
         }
-    }, 8000);
+    }, 10000);
 
     qrTimerInterval = setInterval(() => {
         timeLeft--;
