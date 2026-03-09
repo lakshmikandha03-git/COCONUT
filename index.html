@@ -278,6 +278,48 @@
             opacity: 1;
         }
 
+        .success-msg {
+            color: #166534;
+        }
+
+        /* Toggle Link */
+        .toggle-link {
+            text-align: center;
+            margin-top: 1.2rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .toggle-link a {
+            color: var(--accent-green);
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .toggle-link a:hover {
+            color: var(--primary-green);
+            text-decoration: underline;
+        }
+
+        /* Register form transition */
+        .form-slide {
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Mobile Responsive */
         @media (max-width: 480px) {
             .login-card {
@@ -310,13 +352,13 @@
         <h1>MKP Shop</h1>
         <p>Your portal to premium coconuts</p>
 
-        <div class="tabs-container">
+        <div class="tabs-container" id="tabs-container">
             <div class="tab-slider" id="tab-slider"></div>
             <button class="tab-btn active" onclick="switchTab('user')">User Login</button>
             <button class="tab-btn" onclick="switchTab('admin')">Admin Login</button>
         </div>
 
-        <!-- User Form -->
+        <!-- User Login Form -->
         <form id="user-login-form" class="login-form">
             <div class="form-group">
                 <label for="user-name">Username</label>
@@ -330,6 +372,35 @@
             </div>
             <button type="submit" class="login-btn">Login to Shop</button>
             <div id="user-error" class="error-msg"></div>
+            <div class="toggle-link">
+                Don't have an account? <a onclick="toggleRegister(true)">Register here</a>
+            </div>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="login-form hidden">
+            <div class="form-group">
+                <label for="reg-name">Full Name</label>
+                <input type="text" id="reg-name" placeholder="Enter your full name" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-phone">Phone Number</label>
+                <input type="tel" id="reg-phone" placeholder="Enter 10-digit number" required maxlength="10"
+                    minlength="10" pattern="\d{10}"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);">
+            </div>
+            <div class="form-group">
+                <label for="reg-confirm">Confirm Phone Number</label>
+                <input type="tel" id="reg-confirm" placeholder="Re-enter 10-digit number" required maxlength="10"
+                    minlength="10" pattern="\d{10}"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);">
+            </div>
+            <button type="submit" class="login-btn"
+                style="background: linear-gradient(135deg, #31572C 0%, #4F772D 100%);">Create Account</button>
+            <div id="reg-error" class="error-msg"></div>
+            <div class="toggle-link">
+                Already have an account? <a onclick="toggleRegister(false)">Login here</a>
+            </div>
         </form>
 
         <!-- Admin Form -->
@@ -348,6 +419,11 @@
         </form>
     </div>
 
+    <!-- Firebase Compat SDK (works with file:// protocol) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
     <script>
         // Parallax Effect
         document.addEventListener('mousemove', (e) => {
@@ -357,12 +433,46 @@
             bg.style.transform = `translate(${x}px, ${y}px) scale(1.05)`;
         });
 
+        // Toggle between Login and Register forms
+        function toggleRegister(showRegister) {
+            const loginForm = document.getElementById('user-login-form');
+            const registerForm = document.getElementById('register-form');
+            const adminForm = document.getElementById('admin-login-form');
+            const tabsContainer = document.getElementById('tabs-container');
+
+            adminForm.classList.add('hidden');
+
+            if (showRegister) {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                registerForm.classList.add('form-slide');
+                if (tabsContainer) tabsContainer.style.display = 'none';
+            } else {
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                loginForm.classList.add('form-slide');
+                if (tabsContainer) tabsContainer.style.display = 'flex';
+                // Reset User Login tab to active
+                const tabs = document.querySelectorAll('.tab-btn');
+                const slider = document.getElementById('tab-slider');
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+                slider.style.transform = 'translateX(0)';
+            }
+        }
+
         // Tab Switching
         function switchTab(tab) {
             const userForm = document.getElementById('user-login-form');
             const adminForm = document.getElementById('admin-login-form');
+            const registerForm = document.getElementById('register-form');
             const tabs = document.querySelectorAll('.tab-btn');
             const slider = document.getElementById('tab-slider');
+            const tabsContainer = document.getElementById('tabs-container');
+
+            // Always hide register form and show tabs when switching
+            registerForm.classList.add('hidden');
+            if (tabsContainer) tabsContainer.style.display = 'flex';
 
             if (tab === 'user') {
                 userForm.classList.remove('hidden');
@@ -397,36 +507,200 @@
             });
         });
 
-        // Login Logic (Preserved)
-        document.getElementById('user-login-form').onsubmit = function (e) {
-            e.preventDefault();
-            const name = document.getElementById('user-name').value;
-            const pass = document.getElementById('user-pass').value;
-            const error = document.getElementById('user-error');
-
-            if (name && pass) {
-                localStorage.setItem('currentUser', JSON.stringify({ name, pass, role: 'user' }));
-                window.location.href = 'home.html';
+        // Helper: Show loading state on button
+        function setButtonLoading(btn, loading) {
+            if (loading) {
+                btn.dataset.originalText = btn.innerText;
+                btn.innerText = 'Please wait...';
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
             } else {
+                btn.innerText = btn.dataset.originalText || btn.innerText;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+
+        // ==========================================
+        // USER LOGIN (with Firebase)
+        // ==========================================
+        document.getElementById('user-login-form').onsubmit = async function (e) {
+            e.preventDefault();
+            const name = document.getElementById('user-name').value.trim();
+            const pass = document.getElementById('user-pass').value.trim();
+            const error = document.getElementById('user-error');
+            const btn = this.querySelector('.login-btn');
+
+            if (!name || !pass) {
                 error.innerText = "Please fill all fields.";
                 error.classList.add('visible');
+                setTimeout(() => error.classList.remove('visible'), 3000);
+                return;
+            }
+
+            setButtonLoading(btn, true);
+            error.classList.remove('visible');
+
+            try {
+                const result = await window.firebaseDB.loginUser(name, pass);
+
+                if (result.success) {
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        name: result.data.name || name,
+                        pass: pass,
+                        phone: pass,
+                        role: 'user'
+                    }));
+
+                    error.style.color = '#166534';
+                    error.innerText = '✓ Login successful! Redirecting...';
+                    error.classList.add('visible');
+
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 800);
+                } else {
+                    error.style.color = '#d62828';
+                    error.innerText = result.error || "Login failed. Please try again.";
+                    error.classList.add('visible');
+                    setButtonLoading(btn, false);
+                    setTimeout(() => error.classList.remove('visible'), 3000);
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                localStorage.setItem('currentUser', JSON.stringify({ name, pass, phone: pass, role: 'user' }));
+                window.location.href = 'home.html';
             }
         };
 
-        document.getElementById('admin-login-form').onsubmit = function (e) {
+        // ==========================================
+        // REGISTER ACCOUNT (with Firebase)
+        // ==========================================
+        document.getElementById('register-form').onsubmit = async function (e) {
             e.preventDefault();
-            const name = document.getElementById('admin-name').value;
-            const pass = document.getElementById('admin-pass').value;
-            const error = document.getElementById('admin-error');
+            const name = document.getElementById('reg-name').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const confirmPhone = document.getElementById('reg-confirm').value.trim();
+            const error = document.getElementById('reg-error');
+            const btn = this.querySelector('.login-btn');
 
-            // Credentials: name=23bit66, password=12122023
-            if (name === '23bit66' && pass === '12122023') {
-                localStorage.setItem('currentUser', JSON.stringify({ name, role: 'admin' }));
-                window.location.href = 'admin.html';
-            } else {
-                error.innerText = "Access Denied: Invalid Credentials";
+            if (!name || !phone || !confirmPhone) {
+                error.style.color = '#d62828';
+                error.innerText = "Please fill all fields.";
                 error.classList.add('visible');
                 setTimeout(() => error.classList.remove('visible'), 3000);
+                return;
+            }
+
+            if (phone.length !== 10) {
+                error.style.color = '#d62828';
+                error.innerText = "Phone number must be 10 digits.";
+                error.classList.add('visible');
+                setTimeout(() => error.classList.remove('visible'), 3000);
+                return;
+            }
+
+            if (phone !== confirmPhone) {
+                error.style.color = '#d62828';
+                error.innerText = "Phone numbers do not match.";
+                error.classList.add('visible');
+                setTimeout(() => error.classList.remove('visible'), 3000);
+                return;
+            }
+
+            setButtonLoading(btn, true);
+            error.classList.remove('visible');
+
+            try {
+                const result = await window.firebaseDB.registerUser(name, phone);
+
+                if (result.success) {
+                    if (result.exists) {
+                        error.style.color = '#854d0e';
+                        error.innerText = 'Account already exists! Redirecting to login...';
+                        error.classList.add('visible');
+
+                        setTimeout(() => {
+                            toggleRegister(false);
+                            document.getElementById('user-name').value = name;
+                            document.getElementById('user-pass').value = phone;
+                            setButtonLoading(btn, false);
+                            error.classList.remove('visible');
+                        }, 1500);
+                    } else {
+                        error.style.color = '#166534';
+                        error.innerText = '✓ Account created successfully! Redirecting to login...';
+                        error.classList.add('visible');
+
+                        setTimeout(() => {
+                            toggleRegister(false);
+                            document.getElementById('user-name').value = name;
+                            document.getElementById('user-pass').value = phone;
+                            setButtonLoading(btn, false);
+                            error.classList.remove('visible');
+                            document.getElementById('register-form').reset();
+                        }, 1500);
+                    }
+                } else {
+                    error.style.color = '#d62828';
+                    error.innerText = result.error || "Registration failed. Please try again.";
+                    error.classList.add('visible');
+                    setButtonLoading(btn, false);
+                    setTimeout(() => error.classList.remove('visible'), 3000);
+                }
+            } catch (err) {
+                console.error('Register error:', err);
+                error.style.color = '#d62828';
+                error.innerText = "Network error. Please try again.";
+                error.classList.add('visible');
+                setButtonLoading(btn, false);
+                setTimeout(() => error.classList.remove('visible'), 3000);
+            }
+        };
+
+        // ==========================================
+        // ADMIN LOGIN (with Firebase)
+        // ==========================================
+        document.getElementById('admin-login-form').onsubmit = async function (e) {
+            e.preventDefault();
+            const name = document.getElementById('admin-name').value.trim();
+            const pass = document.getElementById('admin-pass').value.trim();
+            const error = document.getElementById('admin-error');
+            const btn = this.querySelector('.login-btn');
+
+            setButtonLoading(btn, true);
+
+            try {
+                const result = await window.firebaseDB.loginAdmin(name, pass);
+
+                if (result.success) {
+                    localStorage.setItem('currentUser', JSON.stringify({ name, role: 'admin' }));
+
+                    error.style.color = '#166534';
+                    error.innerText = '✓ Admin access granted! Redirecting...';
+                    error.classList.add('visible');
+
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 800);
+                } else {
+                    error.style.color = '#d62828';
+                    error.innerText = "Access Denied: Invalid Credentials";
+                    error.classList.add('visible');
+                    setButtonLoading(btn, false);
+                    setTimeout(() => error.classList.remove('visible'), 3000);
+                }
+            } catch (err) {
+                if (name === '23bit66' && pass === '12122023') {
+                    localStorage.setItem('currentUser', JSON.stringify({ name, role: 'admin' }));
+                    window.location.href = 'admin.html';
+                } else {
+                    error.style.color = '#d62828';
+                    error.innerText = "Access Denied: Invalid Credentials";
+                    error.classList.add('visible');
+                    setButtonLoading(btn, false);
+                    setTimeout(() => error.classList.remove('visible'), 3000);
+                }
             }
         };
     </script>

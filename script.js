@@ -396,7 +396,20 @@ function stopQRTimer() {
     }
 }
 
-function saveOrder(order) {
+async function saveOrder(order) {
+    // Try saving to Firebase first
+    if (window.firebaseDB && window.firebaseDB.saveOrderToFirebase) {
+        try {
+            const result = await window.firebaseDB.saveOrderToFirebase(order);
+            if (result.success) {
+                console.log('Order saved to Firebase:', result.orderId);
+                return;
+            }
+        } catch (err) {
+            console.error('Firebase save failed, using localStorage:', err);
+        }
+    }
+    // Fallback to localStorage
     let sales = JSON.parse(localStorage.getItem('mkp_sales') || '[]');
     sales.push(order);
     localStorage.setItem('mkp_sales', JSON.stringify(sales));
@@ -417,7 +430,7 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-function viewMyOrders() {
+async function viewMyOrders() {
     const user = JSON.parse(localStorage.getItem('currentUser'));
     if (!user) return;
 
@@ -427,9 +440,30 @@ function viewMyOrders() {
 
     if (modal) modal.classList.remove('hidden');
 
-    const allSales = JSON.parse(localStorage.getItem('mkp_sales') || '[]');
-    // Filter sales to show only this user's orders (by name or phone match)
-    const mySales = allSales.filter(s => s.phone === user.pass || s.name === user.name);
+    // Show loading state
+    if (list) list.innerHTML = '<p style="text-align:center; color:#888; padding: 2rem;">Loading orders from database...</p>';
+    if (noOrders) noOrders.classList.add('hidden');
+
+    let mySales = [];
+
+    // Try Firebase first
+    if (window.firebaseDB && window.firebaseDB.fetchUserOrders) {
+        try {
+            const phone = user.phone || user.pass;
+            const result = await window.firebaseDB.fetchUserOrders(phone);
+            if (result.success && result.orders.length > 0) {
+                mySales = result.orders;
+            }
+        } catch (err) {
+            console.error('Firebase fetch failed:', err);
+        }
+    }
+
+    // Fallback to localStorage if Firebase returned nothing
+    if (mySales.length === 0) {
+        const allSales = JSON.parse(localStorage.getItem('mkp_sales') || '[]');
+        mySales = allSales.filter(s => s.phone === (user.phone || user.pass) || s.name === user.name);
+    }
 
     if (mySales.length === 0) {
         if (noOrders) noOrders.classList.remove('hidden');

@@ -173,12 +173,27 @@
                 <p id="stat-revenue">₹0</p>
             </div>
             <div class="stat-card" style="border-left-color: #132A13;">
-                <h3>Active Users</h3>
-                <p id="stat-users">12</p>
+                <h3>Registered Users</h3>
+                <p id="stat-users">
+                    <span style="font-size: 0.8rem; color: #888;">Loading...</span>
+                </p>
             </div>
         </div>
 
-        <div class="booking-table-container">
+        <!-- Tabs for Orders / Users -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <button onclick="showAdminTab('orders')" id="tab-orders-btn"
+                style="padding: 0.7rem 1.5rem; border: 2px solid #4F772D; background: #4F772D; color: white; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                📦 Orders
+            </button>
+            <button onclick="showAdminTab('users')" id="tab-users-btn"
+                style="padding: 0.7rem 1.5rem; border: 2px solid #4F772D; background: transparent; color: #4F772D; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                👥 Registered Users
+            </button>
+        </div>
+
+        <!-- Orders Table -->
+        <div id="orders-section" class="booking-table-container">
             <table>
                 <thead>
                     <tr>
@@ -192,14 +207,48 @@
                     </tr>
                 </thead>
                 <tbody id="admin-sales-body">
-                    <!-- Rows injected by JS -->
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: #888;">
+                            Loading orders from Firebase...
+                        </td>
+                    </tr>
                 </tbody>
             </table>
             <div id="empty-state" class="empty-state hidden">
                 <p>No bookings found yet.</p>
             </div>
         </div>
+
+        <!-- Users Table -->
+        <div id="users-section" class="booking-table-container" style="display: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Phone Number</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Registered Date</th>
+                        <th>Last Login</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-users-body">
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 2rem; color: #888;">
+                            Loading users from Firebase...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div id="users-empty-state" class="empty-state hidden">
+                <p>No registered users found.</p>
+            </div>
+        </div>
     </div>
+
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
 
     <script>
         // Check if logged in as admin
@@ -213,15 +262,63 @@
             window.location.href = 'index.html';
         }
 
-        function loadSales() {
-            const sales = JSON.parse(localStorage.getItem('mkp_sales') || '[]');
+        // Tab switching for admin panel
+        function showAdminTab(tab) {
+            const ordersSection = document.getElementById('orders-section');
+            const usersSection = document.getElementById('users-section');
+            const ordersBtn = document.getElementById('tab-orders-btn');
+            const usersBtn = document.getElementById('tab-users-btn');
+
+            if (tab === 'orders') {
+                ordersSection.style.display = 'block';
+                usersSection.style.display = 'none';
+                ordersBtn.style.background = '#4F772D';
+                ordersBtn.style.color = 'white';
+                usersBtn.style.background = 'transparent';
+                usersBtn.style.color = '#4F772D';
+            } else {
+                ordersSection.style.display = 'none';
+                usersSection.style.display = 'block';
+                usersBtn.style.background = '#4F772D';
+                usersBtn.style.color = 'white';
+                ordersBtn.style.background = 'transparent';
+                ordersBtn.style.color = '#4F772D';
+                loadUsers();
+            }
+        }
+
+        // Load orders — try Firebase first, fallback to localStorage
+        async function loadSales() {
             const tbody = document.getElementById('admin-sales-body');
             const emptyState = document.getElementById('empty-state');
+            let sales = [];
+
+            // Try Firebase first
+            if (window.firebaseDB && window.firebaseDB.fetchAllOrders) {
+                try {
+                    const result = await window.firebaseDB.fetchAllOrders();
+                    if (result.success && result.orders.length > 0) {
+                        sales = result.orders;
+                    }
+                } catch (err) {
+                    console.error('Firebase fetch failed:', err);
+                }
+            }
+
+            // Fallback to localStorage
+            if (sales.length === 0) {
+                sales = JSON.parse(localStorage.getItem('mkp_sales') || '[]');
+            }
 
             if (sales.length === 0) {
+                tbody.innerHTML = '';
                 emptyState.classList.remove('hidden');
+                document.getElementById('stat-orders').innerText = '0';
+                document.getElementById('stat-revenue').innerText = '₹0';
                 return;
             }
+
+            emptyState.classList.add('hidden');
 
             let totalRevenue = 0;
             tbody.innerHTML = sales.map(sale => {
@@ -250,7 +347,65 @@
             document.getElementById('stat-revenue').innerText = `₹${totalRevenue}`;
         }
 
-        document.addEventListener('DOMContentLoaded', loadSales);
+        // Load registered users from Firebase
+        async function loadUsers() {
+            const tbody = document.getElementById('admin-users-body');
+            const emptyState = document.getElementById('users-empty-state');
+
+            if (!window.firebaseDB || !window.firebaseDB.fetchAllUsers) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem; color:#888;">Firebase not loaded. Cannot fetch users.</td></tr>';
+                return;
+            }
+
+            try {
+                const result = await window.firebaseDB.fetchAllUsers();
+
+                if (!result.success || result.users.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyState.classList.remove('hidden');
+                    document.getElementById('stat-users').innerText = '0';
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+                document.getElementById('stat-users').innerText = result.users.length;
+
+                tbody.innerHTML = result.users.map(user => {
+                    const createdAt = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleString() : 'N/A';
+                    const lastLogin = user.lastLogin ? new Date(user.lastLogin.seconds * 1000).toLocaleString() : 'N/A';
+                    return `
+                        <tr>
+                            <td><strong>${user.phone}</strong></td>
+                            <td>${user.name || 'N/A'}</td>
+                            <td>
+                                <span class="status-pill ${user.role === 'admin' ? 'status-cod' : 'status-paid'}">
+                                    ${(user.role || 'user').toUpperCase()}
+                                </span>
+                            </td>
+                            <td><small>${createdAt}</small></td>
+                            <td><small>${lastLogin}</small></td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Error loading users:', err);
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem; color:#d62828;">Error loading users. Please refresh.</td></tr>';
+            }
+        }
+
+        // Wait for Firebase to load, then fetch data
+        function initDashboard() {
+            // Try loading immediately
+            loadSales();
+
+            // Also retry after a short delay for Firebase module to load
+            setTimeout(() => {
+                loadSales();
+            }, 1500);
+        }
+
+        document.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
 
