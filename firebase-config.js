@@ -196,8 +196,10 @@ async function initFCM(phone) {
             return;
         }
 
-        // Register the Firebase Messaging service worker
-        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        // Register the Firebase Messaging service worker using relative path
+        // (works for both localhost and GitHub Pages subdirectories)
+        const swPath = new URL('./firebase-messaging-sw.js', window.location.href).pathname;
+        const registration = await navigator.serviceWorker.register(swPath);
         console.log('[FCM] Service Worker registered:', registration.scope);
 
         // Initialize messaging only if firebase.messaging is available
@@ -239,8 +241,8 @@ async function initFCM(phone) {
             if (title && Notification.permission === 'granted') {
                 new Notification(title, {
                     body: body || '',
-                    icon: '/images/coconut-item.png',
-                    badge: '/images/coconut-item.png'
+                    icon: './images/coconut-item.png',
+                    badge: './images/coconut-item.png'
                 });
             }
         });
@@ -267,8 +269,8 @@ function sendFCMOrderNotification(order) {
     if (Notification.permission === 'granted') {
         new Notification(title, {
             body,
-            icon: '/images/coconut-item.png',
-            badge: '/images/coconut-item.png',
+            icon: './images/coconut-item.png',
+            badge: './images/coconut-item.png',
             tag: 'order-' + order.id,
             vibrate: [200, 100, 200]
         });

@@ -27,8 +27,8 @@ messaging.onBackgroundMessage(function (payload) {
     const notificationTitle = title || '✅ Order Confirmed! - MKP Coconut Shop';
     const notificationOptions = {
         body: body || 'Your order has been placed successfully.',
-        icon: icon || '/images/coconut-item.png',
-        badge: '/images/coconut-item.png',
+        icon: icon || './images/coconut-item.png',
+        badge: './images/coconut-item.png',
         vibrate: [200, 100, 200],
         data: payload.data || {},
         actions: [
