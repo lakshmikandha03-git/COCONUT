@@ -178,6 +178,104 @@ async function fetchAllUsers() {
 }
 
 // ============================================================
+// FIREBASE CLOUD MESSAGING (FCM) - Push Notifications
+// ============================================================
+
+const VAPID_KEY = "BJbkFgsJgOmzuAwbElVq0dTM1926cF8gHfbBs2Bz8Z5GEwc9bGnf6mt9x7UYVM-mflfmKQq5NWY1HH032-ml";
+
+let messagingInstance = null;
+
+/**
+ * Initialize FCM: register service worker, get token, save to Firestore
+ * @param {string} phone - user's phone number (used as Firestore doc ID)
+ */
+async function initFCM(phone) {
+    try {
+        if (!('serviceWorker' in navigator)) {
+            console.warn('Service Worker not supported');
+            return;
+        }
+
+        // Register the Firebase Messaging service worker
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        console.log('[FCM] Service Worker registered:', registration.scope);
+
+        // Initialize messaging only if firebase.messaging is available
+        if (typeof firebase.messaging !== 'function') {
+            console.warn('[FCM] firebase.messaging not loaded');
+            return;
+        }
+
+        messagingInstance = firebase.messaging();
+
+        // Request notification permission
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            console.warn('[FCM] Notification permission denied');
+            return;
+        }
+
+        // Get FCM token
+        const token = await messagingInstance.getToken({
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: registration
+        });
+
+        if (token) {
+            console.log('[FCM] Token:', token);
+            // Save token to Firestore under user's document
+            if (phone) {
+                await db.collection('users').doc(phone).update({ fcmToken: token });
+                console.log('[FCM] Token saved to Firestore for phone:', phone);
+            }
+            // Cache token locally
+            localStorage.setItem('fcmToken', token);
+        }
+
+        // Handle foreground messages (when tab is open/active)
+        messagingInstance.onMessage((payload) => {
+            console.log('[FCM] Foreground message:', payload);
+            const { title, body } = payload.notification || {};
+            if (title && Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: body || '',
+                    icon: '/images/coconut-item.png',
+                    badge: '/images/coconut-item.png'
+                });
+            }
+        });
+
+    } catch (error) {
+        console.error('[FCM] Initialization error:', error);
+    }
+}
+
+/**
+ * Send order confirmation notification via browser Notification API
+ * (FCM token is stored in Firestore; notifications fire via FCM service worker or directly)
+ * @param {object} order
+ */
+function sendFCMOrderNotification(order) {
+    const title = '✅ Order Confirmed! - MKP Coconut Shop';
+    const body =
+        `Hi ${order.name}! Your order has been confirmed.\n` +
+        `📦 Items: ${order.items.join(', ')}\n` +
+        `💰 Total: ₹${order.total}\n` +
+        `📱 Phone: ${order.phone}\n` +
+        `💳 Payment: ${order.payment === 'cash' ? 'Cash on Delivery' : order.payment.toUpperCase()}`;
+
+    if (Notification.permission === 'granted') {
+        new Notification(title, {
+            body,
+            icon: '/images/coconut-item.png',
+            badge: '/images/coconut-item.png',
+            tag: 'order-' + order.id,
+            vibrate: [200, 100, 200]
+        });
+    }
+}
+
+// ============================================================
 // Make functions globally available
 // ============================================================
 window.firebaseDB = {
@@ -187,5 +285,7 @@ window.firebaseDB = {
     saveOrderToFirebase,
     fetchUserOrders,
     fetchAllOrders,
-    fetchAllUsers
+    fetchAllUsers,
+    initFCM,
+    sendFCMOrderNotification
 };

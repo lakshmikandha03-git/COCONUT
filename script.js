@@ -37,6 +37,47 @@ let cart = [];
 let qrTimerInterval = null;
 
 
+// ============================================================
+// NOTIFICATION PERMISSION
+// ============================================================
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+function sendOrderNotification(order) {
+    if (!('Notification' in window)) return;
+
+    const title = '✅ Order Confirmed! - MKP Coconut Shop';
+    const body =
+        `Hi ${order.name}! Your order has been confirmed.\n` +
+        `📦 Items: ${order.items.join(', ')}\n` +
+        `💰 Total: ₹${order.total}\n` +
+        `📱 Phone: ${order.phone}\n` +
+        `💳 Payment: ${order.payment === 'cash' ? 'Cash on Delivery' : order.payment.toUpperCase()}`;
+
+    if (Notification.permission === 'granted') {
+        new Notification(title, {
+            body,
+            icon: 'images/coconut-item.png',
+            badge: 'images/coconut-item.png',
+            tag: 'order-confirm-' + order.id
+        });
+    } else if (Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                new Notification(title, {
+                    body,
+                    icon: 'images/coconut-item.png',
+                    badge: 'images/coconut-item.png',
+                    tag: 'order-confirm-' + order.id
+                });
+            }
+        });
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     // Check for user session
@@ -48,6 +89,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Pre-fill checkout form
         if (document.getElementById('name')) document.getElementById('name').value = user.name;
         if (document.getElementById('phone')) document.getElementById('phone').value = user.pass;
+    }
+
+    // Request notification permission early
+    requestNotificationPermission();
+
+    // Initialize Firebase Cloud Messaging with user's phone
+    if (user && user.phone || user && user.pass) {
+        const phone = (user && (user.phone || user.pass)) || null;
+        if (window.firebaseDB && window.firebaseDB.initFCM) {
+            window.firebaseDB.initFCM(phone);
+        }
     }
 
     renderProducts();
@@ -302,6 +354,13 @@ function processOrder(event) {
     };
 
     saveOrder(order);
+
+    // Send FCM order confirmation notification
+    if (window.firebaseDB && window.firebaseDB.sendFCMOrderNotification) {
+        window.firebaseDB.sendFCMOrderNotification(order);
+    } else {
+        sendOrderNotification(order); // fallback
+    }
 
     // Reset and show success
     cart = [];
