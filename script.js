@@ -38,6 +38,34 @@ let qrTimerInterval = null;
 
 
 // ============================================================
+// WHATSAPP ADMIN NOTIFICATION
+// ============================================================
+const ADMIN_WHATSAPP_NUMBER = "919894869581"; // Admin number with country code
+
+function sendWhatsAppToAdmin(order) {
+    const itemsList = order.items.join(', ');
+    const paymentMethod = order.payment === 'cash' ? 'Cash on Delivery' : order.payment.toUpperCase();
+
+    const message =
+        `🛒 *New Order Confirmed - MKP Coconut Shop*\n\n` +
+        `📋 *Order ID:* #${order.id.toString().slice(-6)}\n` +
+        `📅 *Date:* ${order.date}\n\n` +
+        `👤 *Customer Details*\n` +
+        `• Name: ${order.name}\n` +
+        `• Phone: ${order.phone}\n` +
+        `• Address: ${order.address}\n\n` +
+        `📦 *Order Details*\n` +
+        `• Items: ${itemsList}\n` +
+        `• Total: ₹${order.total}\n` +
+        `• Payment: ${paymentMethod}\n\n` +
+        `✅ Please process this order.`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodedMessage}`;
+    window.open(whatsappURL, '_blank');
+}
+
+// ============================================================
 // NOTIFICATION PERMISSION
 // ============================================================
 function requestNotificationPermission() {
@@ -354,6 +382,9 @@ function processOrder(event) {
     };
 
     saveOrder(order);
+
+    // Send WhatsApp notification to admin
+    sendWhatsAppToAdmin(order);
 
     // Send FCM order confirmation notification
     if (window.firebaseDB && window.firebaseDB.sendFCMOrderNotification) {
