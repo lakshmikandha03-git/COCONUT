@@ -315,6 +315,8 @@ body {
     overflow-y: auto;
     position: relative;
     animation: fadeIn 0.3s ease-out;
+    /* ensure scroll reaches the bottom buttons */
+    padding-bottom: 1.5rem;
 }
 
 .close-modal {
@@ -564,6 +566,46 @@ th {
 
     .hero h1 {
         font-size: 2.5rem;
+    }
+
+    /* ---- Mobile checkout modal fix ---- */
+    .modal {
+        align-items: flex-end;   /* slide up from bottom like a sheet */
+        padding: 0;
+    }
+
+    .modal-content {
+        width: 100%;
+        max-width: 100%;
+        /* Fill most of the screen height so buttons aren't cut off */
+        max-height: 92vh;
+        border-radius: 1.2rem 1.2rem 0 0;
+        padding: 1.5rem 1.2rem;
+        /* Add room for home bar / virtual keyboard on iOS/Android */
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Make Cancel + Confirm buttons stack properly on small screens */
+    #checkout-form > div:last-of-type {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 1.2rem;
+        /* Stick to bottom of the scrollable area */
+        position: sticky;
+        bottom: 0;
+        background: var(--white);
+        padding-top: 0.75rem;
+        padding-bottom: 0.5rem;
+        z-index: 10;
+    }
+
+    .cancel-btn,
+    .checkout-btn {
+        width: 100%;
+        flex: none;
     }
 }
 
