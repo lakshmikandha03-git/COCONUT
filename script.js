@@ -65,6 +65,40 @@ function sendWhatsAppToAdmin(order) {
     window.open(whatsappURL, '_blank');
 }
 
+function sendWhatsAppToCustomer(order) {
+    const itemsList = order.items.join(', ');
+    const message =
+        `✅ *Order Confirmed! - MKP Coconut Shop*\n\n` +
+        `Hi ${order.name},\n` +
+        `Thank you for shopping with us! Your order #${order.id.toString().slice(-6)} has been confirmed.\n\n` +
+        `📦 *Items:* ${itemsList}\n` +
+        `💰 *Total:* ₹${order.total}\n\n` +
+        `We are preparing your fresh coconuts for delivery. We will contact you soon!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappURL = `https://wa.me/91${order.phone}?text=${encodedMessage}`;
+    
+    // Using a timeout to prevent popup blockers for multiple tabs
+    setTimeout(() => {
+        window.open(whatsappURL, '_blank');
+    }, 1000);
+}
+
+function sendWhatsAppCancellationToAdmin(details) {
+    const message =
+        `⚠️ *Order Cancelled - MKP Coconut Shop*\n\n` +
+        `👤 *Customer:* ${details.name || 'Unknown'}\n` +
+        `📱 *Phone:* ${details.phone || 'N/A'}\n` +
+        `📦 *Items:* ${details.items || 'N/A'}\n` +
+        `💰 *Total:* ₹${details.total || '0'}\n` +
+        `📝 *Reason:* ${details.reason}\n\n` +
+        `The customer did not complete the checkout process.`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodedMessage}`;
+    window.open(whatsappURL, '_blank');
+}
+
 // ============================================================
 // NOTIFICATION PERMISSION
 // ============================================================
@@ -334,6 +368,20 @@ function closeCheckout() {
 
 function cancelOrder() {
     if (confirm("Do you want to cancel this order?")) {
+        // Collect current checkout details if any
+        const name = document.getElementById('name').value;
+        const phone = document.getElementById('phone').value;
+        const details = {
+            name: name,
+            phone: phone,
+            items: cart.map(i => `${i.name} (x${i.quantity})`).join(', '),
+            total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+            reason: "Manual Cancellation by User"
+        };
+        
+        // Notify Admin of cancellation
+        sendWhatsAppCancellationToAdmin(details);
+
         closeCheckout();
 
         // Show cancelled overlay briefly
@@ -386,6 +434,9 @@ function processOrder(event) {
     // Send WhatsApp notification to admin
     sendWhatsAppToAdmin(order);
 
+    // Send WhatsApp notification to customer
+    sendWhatsAppToCustomer(order);
+
     // Send FCM order confirmation notification
     if (window.firebaseDB && window.firebaseDB.sendFCMOrderNotification) {
         window.firebaseDB.sendFCMOrderNotification(order);
@@ -399,6 +450,17 @@ function processOrder(event) {
     document.getElementById('checkout-form').reset();
     stopQRTimer();
     closeCheckout();
+
+    const successTitle = document.getElementById('success-title');
+    const successSubtitle = document.getElementById('success-subtitle');
+    
+    if (payment === 'gpay' || payment === 'phonepe') {
+        if (successTitle) successTitle.innerText = "Delivery Confirmed!";
+        if (successSubtitle) successSubtitle.innerText = "Your payment was received. We are preparing your coconuts for delivery.";
+    } else {
+        if (successTitle) successTitle.innerText = "Order Placed Successfully!";
+        if (successSubtitle) successSubtitle.innerText = "Thank you for shopping with MKP Coconut Shop.";
+    }
 
     const success = document.getElementById('success-overlay');
     if (success) success.classList.remove('hidden');
@@ -452,7 +514,7 @@ function startQRTimer() {
                         <div style="background: #dcfce7; padding: 1rem; border-radius: 10px; text-align: center;">
                             <div style="font-size: 2rem; margin-bottom: 0.3rem;">✅</div>
                             <strong style="font-size: 1.1rem;">Payment Successful!</strong>
-                            <p style="font-size: 0.85rem; color: #166534; margin-top: 0.3rem;">Processing your order...</p>
+                            <p style="font-size: 0.85rem; color: #166534; margin-top: 0.3rem;">Confirming delivery details...</p>
                         </div>`;
                 }
 
@@ -469,6 +531,8 @@ function startQRTimer() {
                         // Restore QR elements for future use
                         if (qrImg) qrImg.style.display = '';
                         if (upiBtn) upiBtn.style.display = '';
+                        
+                        // Pass mock event to processOrder
                         processOrder();
                     }
                 }, 2000);
@@ -483,6 +547,21 @@ function startQRTimer() {
 
         if (timeLeft <= 0) {
             stopQRTimer();
+            
+            // Collect current checkout details
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const details = {
+                name: name,
+                phone: phone,
+                items: cart.map(i => `${i.name} (x${i.quantity})`).join(', '),
+                total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                reason: "Payment Timeout (20s reached)"
+            };
+            
+            // Notify Admin of timeout
+            sendWhatsAppCancellationToAdmin(details);
+
             closeCheckout();
             document.getElementById('checkout-form').reset();
 

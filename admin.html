@@ -204,6 +204,7 @@
                         <th>Amount</th>
                         <th>Payment</th>
                         <th>Address</th>
+                        <th>Notify</th>
                     </tr>
                 </thead>
                 <tbody id="admin-sales-body">
@@ -339,6 +340,12 @@
                             </span>
                         </td>
                         <td><small>${sale.address}</small></td>
+                        <td>
+                            <button onclick="sendWhatsAppFromAdmin('${sale.phone}', '${sale.name}', '${sale.id}', '${sale.total}')" 
+                                style="background: #25D366; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
+                                <span style="font-size: 1rem;">💬</span> WhatsApp
+                            </button>
+                        </td>
                     </tr>
                 `;
             }).reverse().join('');
@@ -392,6 +399,13 @@
                 console.error('Error loading users:', err);
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem; color:#d62828;">Error loading users. Please refresh.</td></tr>';
             }
+        }
+
+        function sendWhatsAppFromAdmin(phone, name, orderId, total) {
+            const message = `Halo ${name}, this is MKP Coconut Shop. We have received your order #${orderId.toString().slice(-6)} for ₹${total}. We are processing it now! 🥥`;
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappURL = `https://wa.me/91${phone}?text=${encodedMessage}`;
+            window.open(whatsappURL, '_blank');
         }
 
         // Load just the registered user count for the stat card
